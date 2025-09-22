@@ -5,5 +5,9 @@ scikit-learn
 matplotlib
 torch
 tqdm
-qiskit       
+pennylane>=0.32
 streamlit
+jax<=0.4.28
+jaxlib<=0.4.28
+
+

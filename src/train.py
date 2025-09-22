@@ -5,12 +5,30 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from src.model import TwinLSTM
 from src.data import fetch_assets, engineer_features, create_windows
+from src.qaoa_optimizer import optimize_allocations
 
 def directional_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     # y: (N, n_assets)
     return np.mean(np.sign(y_true) == np.sign(y_pred))
 
-def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, device='cpu'):
+def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, device='cpu', 
+                   use_qaoa=True, budget_units=10, qaoa_p=2, qaoa_steps=200, qaoa_lr=0.05):
+    """
+    Training pipeline with optional QAOA optimization.
+    
+    Args:
+        tickers: List of stock tickers
+        window_size: LSTM input window size
+        batch_size: Training batch size
+        epochs: Number of training epochs
+        lr: Learning rate for LSTM training
+        device: PyTorch device
+        use_qaoa: Whether to apply QAOA optimization after training
+        budget_units: Total allocation units for QAOA
+        qaoa_p: QAOA circuit depth
+        qaoa_steps: QAOA optimization steps
+        qaoa_lr: QAOA learning rate
+    """
     # 1) fetch
     df = fetch_assets(tickers, period='365d', interval='1d')
     feat = engineer_features(df, tickers)
@@ -47,6 +65,7 @@ def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, d
             loss.backward()
             opt.step()
             train_losses.append(loss.item())
+        
         # val
         model.eval()
         val_losses = []
@@ -60,6 +79,7 @@ def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, d
                 val_losses.append(criterion(pred, yb).item())
                 y_true_all.append(yb.cpu().numpy())
                 y_pred_all.append(pred.cpu().numpy())
+        
         y_true_all = np.vstack(y_true_all)
         y_pred_all = np.vstack(y_pred_all)
         val_mse = np.mean(val_losses)
@@ -72,4 +92,34 @@ def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, d
         if val_mse < best_val_loss:
             best_val_loss = val_mse
             torch.save(model.state_dict(), "best_model.pth")
+    
+    # QAOA Optimization Phase
+    if use_qaoa:
+        print("\n=== Running QAOA Portfolio Optimization ===")
+        model.eval()
+        with torch.no_grad():
+            # Use the last validation batch for predictions
+            X_sample = torch.from_numpy(X_val[-1:]).to(device)  # Take last sample
+            predicted_returns = model(X_sample).cpu().numpy().flatten()
+        
+        print(f"Predicted returns: {predicted_returns}")
+        
+        # Run QAOA optimization
+        allocations = optimize_allocations(
+            predicted_returns.tolist(),
+            budget_units,
+            p=qaoa_p,
+            steps=qaoa_steps,
+            lr=qaoa_lr
+        )
+        
+        print(f"QAOA Optimal Allocations: {dict(zip(tickers, allocations))}")
+        print(f"Total allocation units used: {sum(allocations)}/{budget_units}")
+        
+        # Calculate expected portfolio return
+        expected_return = np.dot(predicted_returns, allocations) / budget_units
+        print(f"Expected portfolio return: {expected_return:.6f}")
+        
+        return model, scaler, feat, X_val, Y_val, allocations
+    
     return model, scaler, feat, X_val, Y_val
