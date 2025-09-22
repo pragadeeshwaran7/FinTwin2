@@ -15,10 +15,21 @@ def fetch_assets(tickers: List[str], period='180d', interval='1d') -> pd.DataFra
         if df.empty:
             raise RuntimeError(f"No data for {t}")
         # keep Close and Volume (you can expand to SMA etc later)
-        data[t] = df[['Open','High','Low','Close','Volume']].copy()
-        data[t].columns = pd.MultiIndex.from_product([[t], data[t].columns])
+        # Select only required columns
+        df = df[['Open','High','Low','Close','Volume']].copy()
+        # If columns are MultiIndex, swap levels to (ticker, feature)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.swaplevel(1, 0)
+        # If columns are not MultiIndex, wrap as (ticker, feature)
+        if not isinstance(df.columns, pd.MultiIndex):
+            df.columns = pd.MultiIndex.from_product([[t], df.columns])
+        data[t] = df
     # join on index
     combined = pd.concat(data.values(), axis=1)
+    # Ensure columns are MultiIndex (ticker, feature)
+    if not isinstance(combined.columns, pd.MultiIndex):
+        # If columns are not MultiIndex, convert them
+        combined.columns = pd.MultiIndex.from_tuples(combined.columns)
     # forward/backfill small gaps
     combined = combined.sort_index().ffill().bfill()
     return combined
