@@ -84,3 +84,24 @@ def create_windows(feature_df: pd.DataFrame, tickers: List[str], window_size=60,
     X = np.stack(X)  # (N, window_size, F)
     Y = np.stack(Y)  # (N, n_assets)
     return X.astype(np.float32), Y.astype(np.float32), scaler
+
+    from sklearn.preprocessing import StandardScaler
+
+def create_rf_dataset(feature_df: pd.DataFrame, tickers: List[str], horizon: int = 1):
+    feature_list = []
+    feature_names = []
+    for t in tickers:
+        for col in feature_df[t].columns:
+            feature_list.append(feature_df[(t, col)].values.reshape(-1,1))
+            feature_names.append(f"{t}_{col}")
+    data_matrix = np.hstack(feature_list)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(data_matrix)
+    Y = []
+    for t in tickers:
+        Y.append(feature_df[(t,'ret')].shift(-horizon).values)
+    Y = np.stack(Y, axis=1)
+    X_scaled, Y = X_scaled[:-horizon,:], Y[:-horizon,:]
+    return X_scaled.astype(np.float32), Y.astype(np.float32), feature_names, scaler
+
+
