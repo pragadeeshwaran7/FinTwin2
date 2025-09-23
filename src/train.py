@@ -3,7 +3,9 @@ from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from src.model import TwinLSTM
+from src.lstm import TwinLSTM
+from src.gru import TwinGRU
+from src.tcn import TCN 
 from src.data import fetch_assets, engineer_features, create_windows
 
 def directional_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -12,7 +14,7 @@ def directional_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, device='cpu'):
     # 1) fetch
-    df = fetch_assets(tickers, period='365d', interval='1d')
+    df = fetch_assets(tickers, period='10y', interval='1d')
     feat = engineer_features(df, tickers)
     X, Y, scaler = create_windows(feat, tickers, window_size=window_size)
     N, W, F = X.shape
@@ -29,7 +31,7 @@ def train_pipeline(tickers, window_size=60, batch_size=32, epochs=30, lr=1e-4, d
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
 
     # model
-    model = TwinLSTM(input_size=F, hidden_size=128, num_layers=2, dropout=0.2, output_size=n_assets)
+    model = TCN(input_size=F, num_channels=[128, 128], dropout=0.2, output_size=n_assets)
     model.to(device)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = torch.nn.MSELoss()
