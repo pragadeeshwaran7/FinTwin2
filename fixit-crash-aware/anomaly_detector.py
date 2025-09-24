@@ -14,7 +14,7 @@ SCALER_RF_PATH = Path(MODELS_DIR) / "scaler_rf.pkl"
 SCALER_AE_PATH = Path(MODELS_DIR) / "scaler_ae.pkl"
 
 def train_isolation():
-    df = load_csv(Path("data") / "features_labeled.csv")
+    df = load_csv(Path("data/India") / "features_labeled_india.csv")
     features = ['ret_1','ret_5','vol_20','vol_5','mom_20','vol_ratio','vix','vix_chg','skew_20','kurt_20','vol_spike']
     df = df.dropna()
     X = df[features]
@@ -34,7 +34,7 @@ def score_continuous():
     # loads models and scores test period; returns combined risk index DataFrame
     from train_supervised import train_rf  # if not trained import saved model instead
     import joblib, numpy as np
-    df = load_csv(Path("data") / "features_labeled.csv")
+    df = load_csv(Path("data/India") / "features_labeled.csv")
     features = ['ret_1','ret_5','vol_20','vol_5','mom_20','vol_ratio','vix','vix_chg','skew_20','kurt_20','vol_spike']
     df = df.dropna()
     split = int(len(df) * 0.8)
