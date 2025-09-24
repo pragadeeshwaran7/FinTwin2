@@ -7,7 +7,7 @@ from utils import write_json
 from datetime import datetime
 import json
 
-ALERTS_DIR = Path("alerts")
+ALERTS_DIR = Path("alerts/India")
 ALERTS_DIR.mkdir(exist_ok=True)
 
 def generate_alerts(risk_df, threshold=0.6):
