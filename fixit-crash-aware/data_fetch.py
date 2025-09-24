@@ -52,7 +52,7 @@ def build_master_df():
     # flatten columns to 'TICKER_Close', not 'TICKER_Close_TICKER'
     master.columns = ["_".join(map(str, col[:2])) for col in master.columns.values]
     master.index = pd.to_datetime(master.index)
-    out_path = Path(DATA_DIR) / "master_prices.csv"
+    out_path = Path(DATA_DIR) / "master_prices_india.csv"
     save_csv(master, out_path)
     print("Saved master prices to", out_path)
     return master
