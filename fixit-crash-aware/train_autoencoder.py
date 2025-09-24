@@ -70,7 +70,7 @@ def create_sequences(X, seq_len=AE_SEQ_LEN):
 # -------------------
 def train_ae():
     print("📂 Loading data...")
-    df = load_csv(Path("data") / "features_labeled.csv")
+    df = load_csv(Path("data/India") / "features_labeled_india.csv")
 
     print("🔍 Filtering non-crisis (normal) periods...")
     normal = df[df["label"] == 0]
