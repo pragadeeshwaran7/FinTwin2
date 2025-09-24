@@ -42,9 +42,9 @@ def engineer_features(master_df, window=ROLL_WINDOW):
     return X
 
 def run_feature_pipeline():
-    master = load_csv(Path(DATA_DIR) / "master_prices.csv")
+    master = load_csv(Path(DATA_DIR) / "master_prices_india.csv")
     features = engineer_features(master)
-    out = Path(DATA_DIR) / "features.csv"
+    out = Path(DATA_DIR) / "features_india.csv"
     save_csv(features, out)
     print("Saved features to", out)
     # set AE_FEATURES in config dynamically if needed — caller can import or read features columns
