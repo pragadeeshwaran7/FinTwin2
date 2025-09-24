@@ -1,18 +1,18 @@
 # config.py
 from pathlib import Path
 
-DATA_DIR = Path("data")
-MODELS_DIR = Path("models")
+DATA_DIR = Path("data/India")
+MODELS_DIR = Path("models/Indian")
 MODELS_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 
 # Tickers
-INDEX_TICKER = "SPY"
-VIX_TICKER = "^VIX"
-ADDITIONAL_TICKERS = ["XLF", "TLT"]  # optional sector/bond ETFs
+INDEX_TICKER = "^NSEI"
+VIX_TICKER = "^INDIAVIX"
+ADDITIONAL_TICKERS = ["BANKBEES.NS", "RELIANCE.NS"]  # optional sector/bond ETFs
 
 # fetch window
-START_DATE = "2005-01-01"
+START_DATE = "2004-01-01"
 END_DATE = None  # None => up to today
 
 # Feature parameters
