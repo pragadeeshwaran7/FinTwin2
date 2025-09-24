@@ -14,7 +14,7 @@ MODEL_PATH = Path(MODELS_DIR) / "rf_crisis.pkl"
 SCALER_PATH = Path(MODELS_DIR) / "scaler_rf.pkl"
 
 def train_rf():
-    df = load_csv(Path("data") / "features_labeled.csv")
+    df = load_csv(Path("data/India") / "features_labeled_india.csv")
     # feature list
     features = ['ret_1','ret_5','vol_20','vol_5','mom_20','vol_ratio','vix','vix_chg','skew_20','kurt_20','vol_spike']
     df = df.dropna()
