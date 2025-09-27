@@ -1,0 +1,39 @@
+# Project-wide configuration
+data:
+  cache_dir: "./data_cache"
+
+features:
+  default:
+    - Open
+    - High
+    - Low
+    - Close
+    - Volume
+    - SMA_10
+    - SMA_50
+    - EMA_10
+    - EMA_50
+    - MACD
+    - RSI
+    - Bollinger_upper
+    - Bollinger_lower
+    - ATR
+
+training:
+  window_size: 60
+  batch_size: 64
+  epochs: 50
+  lr: 0.001
+  test_ratio: 0.2
+  seed: 42
+
+model:
+  input_dim: null  # auto-detected after preprocessing
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.2
+  output_dim: 1
+  use_quantum: false
+
+forecast:
+  horizon: 10  # number of steps to forecast iteratively
