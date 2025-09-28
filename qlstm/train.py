@@ -6,7 +6,7 @@ import numpy as np
 from data import get_data
 from preprocessing import add_technical_indicators, select_features, fit_scaler, transform_features
 from sequences import create_sequences
-from model import AdvancedLSTM
+from model import AdvancedLSTM, GRUNet, AttentionGRU, AttentionLSTM
 
 # Load config
 with open("config.yaml") as f:
@@ -41,13 +41,44 @@ def train_model(tickers, start, end, model_save_path=None):
     X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
     y_test = torch.tensor(y_test, dtype=torch.float32).to(device)
 
-    model = AdvancedLSTM(
-        input_dim=X_train.shape[2],
-        hidden_dim=config["model"]["hidden_dim"],
-        num_layers=config["model"]["num_layers"],
-        dropout=config["model"]["dropout"],
-        use_quantum=config["model"].get("use_quantum", False)
-    ).to(device)
+    
+    model_type = config["model"]["type"]  # "LSTM", "GRU", "AttentionGRU", "AttentionLSTM"
+
+    if model_type == "LSTM":
+        model = AdvancedLSTM(
+            input_dim=X_train.shape[2],
+            hidden_dim=config["model"]["hidden_dim"],
+            num_layers=config["model"]["num_layers"],
+            dropout=config["model"]["dropout"],
+            use_quantum=config["model"].get("use_quantum", False)
+        ).to(device)
+
+    elif model_type == "GRU":
+        model = GRUNet(
+            input_dim=X_train.shape[2],
+            hidden_dim=config["model"]["hidden_dim"],
+            num_layers=config["model"]["num_layers"],
+            dropout=config["model"]["dropout"]
+        ).to(device)
+
+    elif model_type == "AttentionGRU":
+        model = AttentionGRU(
+            input_dim=X_train.shape[2],
+            hidden_dim=config["model"]["hidden_dim"],
+            num_layers=config["model"]["num_layers"],
+            dropout=config["model"]["dropout"]
+        ).to(device)
+
+    elif model_type == "AttentionLSTM":
+        model = AttentionLSTM(
+            input_dim=X_train.shape[2],
+            hidden_dim=config["model"]["hidden_dim"],
+            num_layers=config["model"]["num_layers"],
+            dropout=config["model"]["dropout"]
+        ).to(device)
+
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["lr"])
@@ -67,8 +98,10 @@ def train_model(tickers, start, end, model_save_path=None):
         print(f"Epoch {epoch+1}/{config['training']['epochs']} - "
               f"Train Loss: {loss.item():.6f} - Val Loss: {val_loss.item():.6f}")
 
-    if model_save_path is None:
-        model_save_path = "qlstm_model.pth" if config["model"].get("use_quantum") else "lstm_model.pth"
+    # Dynamic model save path
+    suffix = "_qlstm" if config["model"].get("use_quantum", False) else ""
+    model_save_path = f"{model_type.lower()}{suffix}_model.pth"
+
 
 
     torch.save(model.state_dict(), model_save_path)
