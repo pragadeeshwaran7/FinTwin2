@@ -14,7 +14,9 @@ with open("config.yaml") as f:
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train_model(tickers, start, end, model_save_path="lstm_model.pt"):
+
+
+def train_model(tickers, start, end, model_save_path=None):
     all_X, all_y = [], []
 
     data_dict = get_data(tickers, start, end)
@@ -65,6 +67,17 @@ def train_model(tickers, start, end, model_save_path="lstm_model.pt"):
         print(f"Epoch {epoch+1}/{config['training']['epochs']} - "
               f"Train Loss: {loss.item():.6f} - Val Loss: {val_loss.item():.6f}")
 
+    if model_save_path is None:
+        model_save_path = "qlstm_model.pth" if config["model"].get("use_quantum") else "lstm_model.pth"
+
+
     torch.save(model.state_dict(), model_save_path)
     print("Training complete. Model saved to", model_save_path)
     return model
+
+if __name__ == "__main__":
+    tickers = ["AAPL", "MSFT"]
+    start = "2025-01-01"
+    end = "2025-09-27"
+    
+    train_model(tickers, start, end)
