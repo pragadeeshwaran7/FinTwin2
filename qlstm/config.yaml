@@ -28,12 +28,13 @@ training:
   seed: 42
 
 model:
+  type: "GRU" # options: LSTM, GRU, AttentionGRU, AttentionLSTM
   input_dim: null  # auto-detected after preprocessing
   hidden_dim: 64
   num_layers: 2
   dropout: 0.2
   output_dim: 1
-  use_quantum: True   # <--- toggle to true for quantum experiments
+  use_quantum: False   # <--- toggle to true for quantum experiments
 
 forecast:
   horizon: 10  # number of steps to forecast iteratively
