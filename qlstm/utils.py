@@ -3,8 +3,8 @@ import torch
 import os
 from model import AdvancedLSTM
 
-def load_model_from_ckpt(ckpt_path, input_size, device='cpu', hidden_size=128, num_layers=3, dropout=0.2, output_size=1):
-    model = AdvancedLSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout, output_size=output_size)
+def load_model_from_ckpt(ckpt_path, input_dim, device='cpu', hidden_dim=128, num_layers=3, dropout=0.2, use_quantum = True):
+    model = AdvancedLSTM(input_dim=input_dim, hidden_dim=hidden_dim, num_layers=num_layers, dropout=dropout, use_quantum=use_quantum)
     state = torch.load(ckpt_path, map_location=device)
     if 'model_state' in state:
         model.load_state_dict(state['model_state'])
