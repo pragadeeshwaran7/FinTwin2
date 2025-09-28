@@ -13,8 +13,14 @@ with open("config.yaml") as f:
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def predict_next(model_path, tickers, start, end):
+def predict_next(tickers, start, end):
     predictions = {}
+
+    # Pick correct model path
+    if config["model"].get("use_quantum", False):
+        model_path = "qlstm_model.pth"
+    else:
+        model_path = "lstm_model.pth"
 
     for t, df in get_data(tickers, start, end).items():
         df = add_technical_indicators(df)
@@ -46,6 +52,7 @@ if __name__ == "__main__":
     tickers = ["AAPL", "MSFT"]
     start = "2025-01-01"
     end = "2025-09-27"
-    preds = predict_next("lstm_model.pth", tickers, start, end)
+
+    preds = predict_next(tickers, start, end)
     for t, series in preds.items():
         print(f"\nPredictions for {t}:\n", series.tail(10))
