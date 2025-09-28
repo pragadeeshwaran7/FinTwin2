@@ -53,7 +53,7 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     df['ATR'] = tr.rolling(window=14).mean()
     
-    df = df.fillna(method='bfill').fillna(method='ffill')
+    df = df.bfill().ffill()
     
     return df
 
