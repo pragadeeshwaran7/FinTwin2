@@ -8,6 +8,7 @@ import torch
 from typing import List, Optional
 from preprocessing import add_technical_indicators, select_features, fit_scaler, transform_features
 from utils import load_model_from_ckpt
+import pickle
 
 app = FastAPI(title="FinTwin LSTM Service")
 
