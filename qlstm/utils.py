@@ -1,10 +1,10 @@
 # fintwin_module/utils.py
 import torch
 import os
-from model import LSTMModel
+from model import AdvancedLSTM
 
 def load_model_from_ckpt(ckpt_path, input_size, device='cpu', hidden_size=128, num_layers=3, dropout=0.2, output_size=1):
-    model = LSTMModel(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout, output_size=output_size)
+    model = AdvancedLSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout, output_size=output_size)
     state = torch.load(ckpt_path, map_location=device)
     if 'model_state' in state:
         model.load_state_dict(state['model_state'])
