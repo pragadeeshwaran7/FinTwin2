@@ -21,7 +21,7 @@ features:
 
 training:
   window_size: 60
-  batch_size: 64
+  batch_size: 8
   epochs: 50
   lr: 0.001
   test_ratio: 0.2
@@ -33,7 +33,7 @@ model:
   num_layers: 2
   dropout: 0.2
   output_dim: 1
-  use_quantum: true   # <--- toggle to true for quantum experiments
+  use_quantum: True   # <--- toggle to true for quantum experiments
 
 forecast:
   horizon: 10  # number of steps to forecast iteratively
