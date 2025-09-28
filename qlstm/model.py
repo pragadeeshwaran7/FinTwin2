@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from qmodel import QLSTMCell
 
+#LSTM + QLSTM
 class AdvancedLSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers=1, dropout=0.2, use_quantum=False, output_dim=1):
         super().__init__()
@@ -48,3 +49,48 @@ class AdvancedLSTM(nn.Module):
             x_seq, _ = self.lstm(x)
             out = self.fc(x_seq[:, -1, :])
             return out
+        
+#GRU
+class GRUNet(nn.Module):
+    def __init__(self, input_dim, hidden_dim, num_layers=1, dropout=0.2, output_dim=1):
+        super().__init__()
+        self.gru = nn.GRU(input_dim, hidden_dim, num_layers,
+                          batch_first=True, dropout=dropout)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        out, _ = self.gru(x)
+        out = self.fc(out[:, -1, :])
+        return out
+
+# Attention GRU
+class AttentionGRU(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim=1, num_layers=1, dropout=0.2):
+        super().__init__()
+        self.gru = nn.GRU(input_dim, hidden_dim, num_layers,
+                          batch_first=True, dropout=dropout)
+        self.attn = nn.Linear(hidden_dim, 1)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        out, _ = self.gru(x)
+        attn_weights = torch.softmax(self.attn(out), dim=1)
+        context = torch.sum(attn_weights * out, dim=1)
+        out = self.fc(context)
+        return out
+
+# Attention LSTM
+class AttentionLSTM(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim=1, num_layers=1, dropout=0.2):
+        super().__init__()
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers,
+                            batch_first=True, dropout=dropout)
+        self.attn = nn.Linear(hidden_dim, 1)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        out, _ = self.lstm(x)
+        attn_weights = torch.softmax(self.attn(out), dim=1)
+        context = torch.sum(attn_weights * out, dim=1)
+        out = self.fc(context)
+        return out
