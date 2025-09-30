@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time Nifty15</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#0b1020; --panel:#121833; --text:#e6e9f0; --muted:#aab3c5; --up:#19c37d; --down:#ef4444; --warn:#f59e0b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
+    header { padding: 16px 20px; display:flex; align-items:center; justify-content:space-between; background: linear-gradient(180deg, #121833, #0e1430); border-bottom: 1px solid #1e2647; position: sticky; top:0; z-index: 10; }
+    header h1 { margin:0; font-size: 18px; letter-spacing: .4px; }
+    .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .panel { background: var(--panel); border: 1px solid #1e2647; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,.25); }
+    .toolbar { display:flex; gap:10px; align-items:center; padding:12px 14px; border-bottom:1px solid #1e2647; }
+    .toolbar input { background:#0e1430; color:var(--text); border:1px solid #1e2647; border-radius:8px; padding:8px 10px; width:220px; }
+    .toolbar .pill { font-size:12px; color:var(--muted); }
+    table { width:100%; border-collapse: collapse; }
+    thead th { text-align:left; font-size:12px; color: var(--muted); font-weight:600; padding:12px 14px; border-bottom:1px solid #1e2647; background:#0f1633; position: sticky; top: 58px; }
+    tbody td { padding:12px 14px; border-bottom:1px solid #1b2242; }
+    tbody tr:hover { background:#0f1633; }
+    .symbol { font-weight:600; letter-spacing:.3px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; }
+    .up { color: var(--up); background: rgba(25,195,125,.08); border:1px solid rgba(25,195,125,.2); }
+    .down { color: var(--down); background: rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); }
+    .neutral { color: var(--muted); background: rgba(170,179,197,.08); border:1px solid rgba(170,179,197,.2); }
+    .footer { padding: 10px 14px; color: var(--muted); font-size: 12px; display:flex; justify-content:space-between; }
+    .blink { animation: pulse .9s ease-in-out 1; }
+    @keyframes pulse { 0% { outline:2px solid rgba(255,255,255,.0); } 50% { outline:2px solid rgba(245,158,11,.35); } 100% { outline:2px solid rgba(255,255,255,.0); } }
+    .charts { display:grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr)); gap:16px; margin: 16px 0 0; }
+    .chart-card { background: var(--panel); border:1px solid #1e2647; border-radius: 10px; padding: 8px 12px; }
+    .chart-card h3 { margin: 6px 2px 8px; font-size: 14px; color: var(--muted); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${wsProto}://${location.host}/ws`);
+
+    const state = {
+      rows: new Map(),
+      lastBySymbol: new Map(),
+      filter: '',
+      charts: new Map(),
+      history: new Map(),
+      maxPoints: 60
+    };
+
+    function formatNumber(n, d=4){
+      const x = Number(n||0);
+      return isFinite(x) ? x.toFixed(d) : '0.0000';
+    }
+
+    function trendClass(prev, next){
+      if (prev == null) return 'neutral';
+      if (next > prev) return 'up';
+      if (next < prev) return 'down';
+      return 'neutral';
+    }
+
+    function ensureRow(symbol){
+      if (state.rows.has(symbol)) return state.rows.get(symbol);
+      const tbody = document.querySelector('#grid tbody');
+      const tr = document.createElement('tr');
+      tr.dataset.symbol = symbol;
+      tr.innerHTML = `
+        <td class="symbol">${symbol}</td>
+        <td class="num" data-key="close">0.0000</td>
+        <td class="num" data-key="volatility">0.0000</td>
+        <td><span class="chip neutral" data-key="lstm">0.0000</span></td>
+        <td><span class="chip neutral" data-key="gru">0.0000</span></td>
+      `;
+      tbody.appendChild(tr);
+      state.rows.set(symbol, tr);
+      return tr;
+    }
+
+    function ensureChart(symbol){
+      if (state.charts.has(symbol)) return state.charts.get(symbol);
+      const wrap = document.querySelector('#charts');
+      const card = document.createElement('div');
+      card.className = 'chart-card';
+      card.innerHTML = `<h3>${symbol}</h3><canvas id="c_${symbol}"></canvas>`;
+      wrap.appendChild(card);
+      const ctx = card.querySelector('canvas').getContext('2d');
+      const cfg = {
+        type: 'line',
+        data: { labels: [], datasets: [
+          { label: 'Close', data: [], borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,.15)', tension:.25, pointRadius:0 },
+          { label: 'LSTM', data: [], borderColor:'#19c37d', backgroundColor:'rgba(25,195,125,.15)', tension:.25, pointRadius:0 },
+          { label: 'GRU', data: [], borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.15)', tension:.25, pointRadius:0 },
+        ]},
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          scales: { x: { display:false }, y: { display:true, grid: { color:'#1b2242' }, ticks: { color:'#aab3c5' } } },
+          plugins: { legend: { labels: { color:'#aab3c5' } } }
+        }
+      };
+      const chart = new Chart(ctx, cfg);
+      chart.canvas.parentNode.style.height = '180px';
+      state.charts.set(symbol, chart);
+      state.history.set(symbol, []);
+      return chart;
+    }
+
+    function applyFilter(){
+      const f = state.filter.toLowerCase();
+      state.rows.forEach((tr, symbol) => {
+        tr.style.display = symbol.toLowerCase().includes(f) ? '' : 'none';
+      });
+    }
+
+    function updateRow(data){
+      const { symbol } = data;
+      const tr = ensureRow(symbol);
+      const chart = ensureChart(symbol);
+      const prev = state.lastBySymbol.get(symbol) || {};
+      state.lastBySymbol.set(symbol, data);
+
+      const closeTd = tr.querySelector('[data-key="close"]');
+      const volTd = tr.querySelector('[data-key="volatility"]');
+      const lstmSpan = tr.querySelector('[data-key="lstm"]');
+      const gruSpan = tr.querySelector('[data-key="gru"]');
+
+      const lstmVal = Number(data.lstm || 0);
+      const gruVal = Number(data.gru || 0);
+
+      closeTd.textContent = formatNumber(data.close, 2);
+      volTd.textContent = formatNumber(data.volatility, 4);
+      lstmSpan.textContent = formatNumber(lstmVal, 4);
+      gruSpan.textContent = formatNumber(gruVal, 4);
+
+      const c1 = trendClass(prev.lstm, lstmVal);
+      const c2 = trendClass(prev.gru, gruVal);
+      lstmSpan.className = `chip ${c1} blink`;
+      gruSpan.className = `chip ${c2} blink`;
+
+      setTimeout(() => {
+        lstmSpan.classList.remove('blink');
+        gruSpan.classList.remove('blink');
+      }, 500);
+
+      const hist = state.history.get(symbol) || [];
+      const point = { t: new Date(), close: Number(data.close||0), lstm: lstmVal, gru: gruVal };
+      hist.push(point);
+      while (hist.length > state.maxPoints) hist.shift();
+      state.history.set(symbol, hist);
+
+      chart.data.labels = hist.map(p => p.t.toLocaleTimeString());
+      chart.data.datasets[0].data = hist.map(p => p.close);
+      chart.data.datasets[1].data = hist.map(p => p.lstm);
+      chart.data.datasets[2].data = hist.map(p => p.gru);
+      chart.update('none');
+    }
+
+    ws.onmessage = e => {
+      try {
+        const d = JSON.parse(e.data);
+        updateRow(d);
+      } catch (err) {
+        console.error('Bad message', err);
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const filter = document.querySelector('#filter');
+      filter.addEventListener('input', (e) => {
+        state.filter = e.target.value || '';
+        applyFilter();
+      });
+    });
+  </script>
+  </head>
+  <body>
+    <header>
+      <h1>Nifty15 Live Predictions</h1>
+      <div class="pill">WebSocket: <span id="wsStatus">connected</span></div>
+    </header>
+    <div class="container">
+      <div class="panel">
+        <div class="toolbar">
+          <input id="filter" placeholder="Filter symbols... (e.g. TCS)" />
+          <div class="pill">Showing live predictions</div>
+        </div>
+        <table id="grid">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Close</th>
+              <th>Volatility</th>
+              <th>LSTM</th>
+              <th>GRU</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="footer">
+          <div>Data source: websocket stream</div>
+          <div id="updatedAt">Updated: live</div>
+        </div>
+      </div>
+      <div class="charts" id="charts"></div>
+    </div>
+  </body>
+</html>
