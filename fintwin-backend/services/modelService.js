@@ -5,7 +5,8 @@ dotenv.config();
 
 export const executePythonModel = (modelName, inputData) => {
   return new Promise((resolve, reject) => {
-    const python = spawn(process.env.PYTHON_PATH, [`./models/${modelName}_predict.py`]);
+    const pythonExec = process.env.PYTHON_PATH || "python3";
+    const python = spawn(pythonExec, [`./models/${modelName}_predict.py`]);
 
     let output = "";
     let errorOutput = "";
@@ -17,11 +18,22 @@ export const executePythonModel = (modelName, inputData) => {
     python.stderr.on("data", (data) => (errorOutput += data.toString()));
 
     python.on("close", (code) => {
-      if (code !== 0) reject(new Error(errorOutput));
+      // If python script printed JSON to stdout, try parsing it even if code !== 0 so we return helpful messages
+      if (output) {
+        try {
+          const parsed = JSON.parse(output);
+          resolve(parsed);
+          return;
+        } catch (e) {
+          // fallthrough
+        }
+      }
+
+      if (code !== 0) reject(new Error(errorOutput || `Python exited with code ${code}`));
       else {
         try {
           resolve(JSON.parse(output));
-        } catch {
+        } catch (err) {
           reject(new Error("Invalid JSON output: " + output));
         }
       }

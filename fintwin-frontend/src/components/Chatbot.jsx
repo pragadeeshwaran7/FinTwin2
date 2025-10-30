@@ -11,12 +11,15 @@ export default function Chatbot() {
     setMessages(prev => [...prev, userMsg]);
     setText("");
     try {
-      // Basic orchestrator payload: { user_id, intent, payload }
-      const payload = { user_id: "user_1", intent: "forensic", payload: { query: text } };
+      const payload = { payload: { query: text } };
       const res = await orchestrator(payload);
-      setMessages(prev => [...prev, { role:"assistant", text: JSON.stringify(res) }]);
+      // Extract message from response and add to chat
+      const assistantText = res.data?.message || "I couldn't generate a response. Please try again.";
+      setMessages(prev => [...prev, { role:"assistant", text: assistantText }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role:"assistant", text: "Error: " + err.message }]);
+      // Show user-friendly error
+      const errorMsg = err.response?.data?.message || err.message || "Something went wrong. Please try again.";
+      setMessages(prev => [...prev, { role:"assistant", text: "Error: " + errorMsg }]);
     }
   };
 
@@ -24,11 +27,27 @@ export default function Chatbot() {
     <div className="card">
       <h3>Chat</h3>
       <div style={{height:240, overflowY:"auto",marginTop:8, padding:8, background:"rgba(0,0,0,0.05)", borderRadius:8}}>
-        {messages.length===0 && <div className="small">Ask FinTwin a question (calls orchestrator)</div>}
+        {messages.length===0 && (
+          <div className="small" style={{textAlign:"center",color:"#666"}}>
+            Welcome! How can I help you today?
+          </div>
+        )}
         {messages.map((m,i)=>(
-          <div key={i} style={{marginBottom:8}}>
-            <div style={{fontSize:12,color:m.role==="user" ? "#9be7ff" : "#b8f1e4"}}>{m.role}</div>
-            <div style={{whiteSpace:"pre-wrap"}}>{m.text}</div>
+          <div key={i} style={{
+            marginBottom: 12,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: m.role === "user" ? "flex-end" : "flex-start"
+          }}>
+            <div style={{
+              maxWidth: "80%",
+              padding: "8px 12px",
+              borderRadius: 12,
+              background: m.role === "user" ? "#1976d2" : "#2e7d32",
+              color: "#fff"
+            }}>
+              {m.text}
+            </div>
           </div>
         ))}
       </div>

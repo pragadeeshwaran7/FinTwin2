@@ -1,0 +1,51 @@
+[
+  {
+    "key": "crash_iso",
+    "name": "Crash - Isolation Forest",
+    "artifact": "../fintwin-models/stock/crash-aware/models/iso.pkl",
+    "inputTemplate": { "feature": [0.0, 0.0, 0.0] },
+    "notes": "IsolationForest anomaly score. Provide a numeric feature vector as `feature` array."
+  },
+  {
+    "key": "crash_rf_crisis",
+    "name": "Crash - RF Crisis Classifier",
+    "artifact": "../fintwin-models/stock/crash-aware/models/rf_crisis.pkl",
+    "inputTemplate": { "feature": [0.0, 0.0, 0.0] },
+    "notes": "RandomForest classifier. Provide feature vector; returns predicted class and probabilities if available."
+  },
+  {
+    "key": "crash_lstm_ae",
+    "name": "Crash - LSTM Autoencoder",
+    "artifact": "../fintwin-models/stock/crash-aware/models/lstm_autoencoder.pt",
+    "inputTemplate": { "sequence": [[0.0], [0.0], [0.0]] },
+    "notes": "LSTM autoencoder saved as .pt. Provide a sequence (list of timesteps) under `sequence`. If loading fails, wrapper will return a fallback value."
+  },
+  {
+    "key": "savings_xgboost",
+    "name": "Savings - XGBoost Predictor",
+    "artifact": "../fintwin-models/personal/models/transaction_analyser/savings_prediction/xgboost_savings_model.pkl",
+    "inputTemplate": { "feature": [0.0, 0.0, 0.0] },
+    "notes": "XGBoost model for savings prediction. Provide numeric feature vector as `feature`."
+  },
+  {
+    "key": "saver_classifier",
+    "name": "Saver Classifier",
+    "artifact": "../fintwin-models/personal/models/transaction_analyser/saver_classifier/saver_classifier.pkl",
+    "inputTemplate": { "feature": [0.0, 0.0, 0.0] },
+    "notes": "Classifier to detect savers. Provide numeric feature vector."
+  },
+  {
+    "key": "loan_default",
+    "name": "Loan - Default Classifier",
+    "artifact": "../fintwin-models/personal/models/loan/loan_status_classifier/models/lightgbm_best_model.pkl",
+    "inputTemplate": { "feature": [0.0, 0.0, 0.0] },
+    "notes": "LightGBM model for loan default prediction. Provide numeric features under `feature`."
+  },
+  {
+    "key": "repayment_ratio",
+    "name": "Repayment Ratio Estimator",
+    "artifact": "../fintwin-models/personal/models/loan/loan_repayment_repayment_ratio_pipeline/models/rf_repayment_ratio_pipeline.joblib",
+    "inputTemplate": { "feature": [0.0, 0.0, 0.0] },
+    "notes": "RandomForest estimator for repayment ratio. Provide numeric feature vector."
+  }
+]

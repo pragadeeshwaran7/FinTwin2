@@ -5,22 +5,21 @@ import Chatbot from "./Chatbot";
 import { callModel } from "../services/api";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-const MODEL_NAMES = [
-  "model1", "model2", "model3", "model4", "model5", "model6", "model7"
-];
+// Dashboard will fetch available models dynamically from the backend
 
 const Dashboard = () => {
   const [price, setPrice] = useState(null);
   const [history, setHistory] = useState([]);
   const [stocks, setStocks] = useState([]);
   const [stockSymbol, setStockSymbol] = useState("");
-  const [selectedModel, setSelectedModel] = useState(MODEL_NAMES[0]);
+  const [selectedModel, setSelectedModel] = useState("");
+  const [modelsList, setModelsList] = useState([]);
   const [liveHistory, setLiveHistory] = useState([]);
 
   useEffect(() => {
     const fetchStocks = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/stocks');
+            const response = await axios.get('http://localhost:5001/api/stocks');
         setStocks(response.data);
         if (response.data.length > 0) {
           setStockSymbol(response.data[0]);
@@ -30,12 +29,25 @@ const Dashboard = () => {
       }
     };
     fetchStocks();
+    // fetch model definitions
+    const fetchModels = async () => {
+      try {
+        const res = await axios.get((import.meta.env.VITE_API_BASE || 'http://localhost:5001') + '/api/models/list');
+        if (res.data && res.data.models) {
+          setModelsList(res.data.models);
+          if (res.data.models.length > 0) setSelectedModel(res.data.models[0].key);
+        }
+      } catch (err) {
+        console.error('Error fetching model list', err);
+      }
+    };
+    fetchModels();
   }, []);
 
   const fetchPrice = async () => {
     if (!stockSymbol) return;
     try {
-      const response = await axios.get(`http://localhost:5000/api/finance/price/${stockSymbol}`);
+      const response = await axios.get(`http://localhost:5001/api/finance/price/${stockSymbol}`);
       const newPrice = response.data.price;
       setPrice(newPrice);
       setLiveHistory(prevHistory => {
@@ -51,7 +63,7 @@ const Dashboard = () => {
     if (!stockSymbol) return;
     try {
       // Request the full historical dataset (1y) from the backend
-      const response = await axios.get(`http://localhost:5000/api/finance/historical-data/${stockSymbol}`);
+        const response = await axios.get(`http://localhost:5001/api/finance/historical-data/${stockSymbol}`);
       // Backend returns objects with a `date` and `close` field. Map to the chart shape { price, timestamp }
       const mapped = response.data.map(item => ({
         price: item.close,
@@ -99,8 +111,8 @@ const Dashboard = () => {
             ))}
           </datalist>
           <select className="input" value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
-            {MODEL_NAMES.map(model => (
-              <option key={model} value={model}>{model}</option>
+            {modelsList.map(m => (
+              <option key={m.key} value={m.key}>{m.name}</option>
             ))}
           </select>
         </div>
@@ -140,7 +152,15 @@ const Dashboard = () => {
 
           <div className="card model-list">
             <h3>Models</h3>
-            <ModelCard key={selectedModel} name={selectedModel} inputTemplate={{ feature: [1, 2, 3] }} onCall={onCallModel} />
+            {modelsList.length === 0 ? (
+              <div className="small">No models available (failed to fetch /api/models/list)</div>
+            ) : (
+              modelsList.map(m => (
+                <div key={m.key} style={{marginBottom:12}}>
+                  <ModelCard name={m.key} inputTemplate={m.inputTemplate} onCall={onCallModel} />
+                </div>
+              ))
+            )}
           </div>
         </div>
 
