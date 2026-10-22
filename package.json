@@ -1,0 +1,16 @@
+{
+  "name": "fintwin",
+  "version": "2.0.0",
+  "private": true,
+  "description": "FinTwin: financial digital twin (personal finance analytics, live NSE markets, ML risk models, QAOA portfolio optimiser, AI assistant)",
+  "type": "module",
+  "scripts": {
+    "setup": "npm install --prefix backend && npm install --prefix frontend && npm install --prefix mcp-server && pip3 install -r ml/requirements.txt",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run build && npm start --prefix backend",
+    "test": "npm test --prefix backend",
+    "seed": "npm run seed --prefix backend",
+    "mcp": "npm start --prefix mcp-server"
+  }
+}

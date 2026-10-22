@@ -1,0 +1,24 @@
+# core
+pandas
+numpy
+scikit-learn
+joblib
+yfinance
+pytz
+matplotlib
+
+# deep learning for sequence autoencoder
+tensorflow
+
+# explainability
+shap
+
+# server / dashboard
+streamlit
+
+# optional (FRED API)
+fredapi
+
+# utilities
+python-dateutil
+tqdm

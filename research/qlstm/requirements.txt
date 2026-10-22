@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+torch
+scikit-learn
+pandas
+joblib
+streamlit
+requests
+pennylane
+pennylane-torch
+ta
+yfinance
+pyyaml

@@ -1,0 +1,11 @@
+{
+  "name": "fintwin-mcp-server",
+  "version": "2.0.0",
+  "description": "MCP server exposing FinTwin transactions, analytics and NSE market tools",
+  "type": "module",
+  "bin": { "fintwin-mcp": "src/index.js" },
+  "scripts": { "start": "node src/index.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  }
+}

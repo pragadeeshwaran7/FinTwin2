@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nifty15 Mean Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+      body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; background:#0b1020; color:#e6e9f0 }
+      header { padding:14px 16px; background:#121833; border-bottom:1px solid #1e2647; display:flex; justify-content:space-between; align-items:center }
+      .container { padding:16px; max-width:1200px; margin:0 auto }
+      .panel { background:#121833; border:1px solid #1e2647; border-radius:10px; overflow:hidden }
+      .toolbar { padding:10px 12px; border-bottom:1px solid #1e2647; display:flex; gap:10px }
+      input { background:#0e1430; color:#e6e9f0; border:1px solid #1e2647; border-radius:8px; padding:8px 10px; width:220px }
+      table { width:100%; border-collapse:collapse }
+      th, td { padding:10px 12px; border-bottom:1px solid #1b2242 }
+      th { color:#aab3c5; text-align:left; font-size:12px }
+      .charts { display:grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap:16px; margin-top:16px }
+      .chart-card { background:#121833; border:1px solid #1e2647; border-radius:10px; padding:8px 12px }
+      .chart-card h4 { margin:6px 2px 8px; font-size:14px; color:#aab3c5 }
+      .chart-tabs { display:flex; gap:8px; margin-bottom:8px }
+      .chart-tab { padding:4px 8px; background:#0e1430; border:1px solid #1e2647; border-radius:4px; cursor:pointer; font-size:12px }
+      .chart-tab.active { background:#1e2647; color:#e6e9f0 }
+      .timestamp { font-size:11px; color:#aab3c5; font-family:monospace }
+      .chip { display:inline-flex; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px }
+      .up { color:#19c37d; background:rgba(25,195,125,.08); border:1px solid rgba(25,195,125,.2) }
+      .down { color:#ef4444; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2) }
+      .neutral { color:#aab3c5; background:rgba(170,179,197,.08); border:1px solid rgba(170,179,197,.2) }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h3>Nifty15 Mean Dashboard</h3>
+      <div id="conn">connecting...</div>
+    </header>
+    <div class="container">
+      <div class="panel">
+        <div class="toolbar">
+          <input id="filter" placeholder="Filter symbols" />
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Timestamp</th>
+              <th>Open</th>
+              <th>High</th>
+              <th>Low</th>
+              <th>Close</th>
+              <th>Volume</th>
+              <th>Volatility</th>
+              <th>LSTM</th>
+              <th>GRU</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="charts" id="charts"></div>
+    </div>
+    <script>
+      const socket = io();
+      const rows = new Map();
+      const charts = new Map();
+      const history = new Map();
+      const maxPoints = 60;
+      const last = new Map();
+
+      socket.on('connect', () => document.getElementById('conn').textContent = 'connected');
+      socket.on('disconnect', () => document.getElementById('conn').textContent = 'disconnected');
+
+      function row(symbol){
+        if (rows.has(symbol)) return rows.get(symbol);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${symbol}</td>
+                        <td class="timestamp" data-k="ts">-</td>
+                        <td data-k="open">0</td>
+                        <td data-k="high">0</td>
+                        <td data-k="low">0</td>
+                        <td data-k="close">0</td>
+                        <td data-k="volume">0</td>
+                        <td data-k="volatility">0</td>
+                        <td><span class="chip neutral" data-k="lstm">0</span></td>
+                        <td><span class="chip neutral" data-k="gru">0</span></td>`;
+        document.getElementById('rows').appendChild(tr);
+        rows.set(symbol, tr);
+        return tr;
+      }
+
+      function ensureChart(symbol){
+        if (charts.has(symbol)) return charts.get(symbol);
+        const card = document.createElement('div');
+        card.className = 'chart-card';
+        card.innerHTML = `
+          <h4>${symbol}</h4>
+          <div class="chart-tabs">
+            <div class="chart-tab active" data-tab="ohlc">OHLC</div>
+            <div class="chart-tab" data-tab="predictions">Predictions</div>
+          </div>
+          <canvas></canvas>
+        `;
+        document.getElementById('charts').appendChild(card);
+        
+        const ctx = card.querySelector('canvas').getContext('2d');
+        const chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              { label: 'Open', data: [], borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,.15)', tension: 0.25, pointRadius: 0 },
+              { label: 'High', data: [], borderColor: '#19c37d', backgroundColor: 'rgba(25,195,125,.15)', tension: 0.25, pointRadius: 0 },
+              { label: 'Low', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.15)', tension: 0.25, pointRadius: 0 },
+              { label: 'Close', data: [], borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,.15)', tension: 0.25, pointRadius: 0 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { display: false },
+              y: { grid: { color: '#1b2242' }, ticks: { color: '#aab3c5' } }
+            },
+            plugins: { legend: { labels: { color: '#aab3c5' } } }
+          }
+        });
+        
+        chart.canvas.parentNode.style.height = '200px';
+        charts.set(symbol, chart);
+        history.set(symbol, []);
+        
+        // Tab switching
+        card.querySelectorAll('.chart-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            card.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            updateChartView(symbol, tab.dataset.tab);
+          });
+        });
+        
+        return chart;
+      }
+      
+      function updateChartView(symbol, view) {
+        const chart = charts.get(symbol);
+        const hist = history.get(symbol) || [];
+        
+        if (view === 'ohlc') {
+          chart.data.datasets = [
+            { label: 'Open', data: hist.map(p => p.open), borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,.15)', tension: 0.25, pointRadius: 0 },
+            { label: 'High', data: hist.map(p => p.high), borderColor: '#19c37d', backgroundColor: 'rgba(25,195,125,.15)', tension: 0.25, pointRadius: 0 },
+            { label: 'Low', data: hist.map(p => p.low), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.15)', tension: 0.25, pointRadius: 0 },
+            { label: 'Close', data: hist.map(p => p.close), borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,.15)', tension: 0.25, pointRadius: 0 }
+          ];
+        } else {
+          chart.data.datasets = [
+            { label: 'LSTM', data: hist.map(p => p.lstm), borderColor: '#19c37d', backgroundColor: 'rgba(25,195,125,.15)', tension: 0.25, pointRadius: 0 },
+            { label: 'GRU', data: hist.map(p => p.gru), borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,.15)', tension: 0.25, pointRadius: 0 }
+          ];
+        }
+        chart.update('none');
+      }
+
+      socket.on('tick', d => {
+        const symbol = d.symbol;
+        const tr = row(symbol);
+        const chart = ensureChart(symbol);
+        const prev = last.get(symbol) || {};
+        last.set(symbol, d);
+
+        const t = d.ts ? new Date(d.ts) : new Date();
+        const o = Number(d.open||0).toFixed(2);
+        const h = Number(d.high||0).toFixed(2);
+        const l = Number(d.low||0).toFixed(2);
+        const c = Number(d.close||0).toFixed(2);
+        const v = Number(d.volume||0).toLocaleString();
+        const vol = Number(d.volatility||0).toFixed(4);
+        const lstmVal = Number(d.lstm||0).toFixed(4);
+        const gruVal = Number(d.gru||0).toFixed(4);
+        
+        tr.querySelector('[data-k="ts"]').textContent = t.toLocaleTimeString();
+        tr.querySelector('[data-k="open"]').textContent = o;
+        tr.querySelector('[data-k="high"]').textContent = h;
+        tr.querySelector('[data-k="low"]').textContent = l;
+        tr.querySelector('[data-k="close"]').textContent = c;
+        tr.querySelector('[data-k="volume"]').textContent = v;
+        tr.querySelector('[data-k="volatility"]').textContent = vol;
+        
+        const ls = tr.querySelector('[data-k="lstm"]');
+        const gs = tr.querySelector('[data-k="gru"]');
+        const cls = (prev.lstm==null)?'neutral':(d.lstm>prev.lstm?'up':(d.lstm<prev.lstm?'down':'neutral'));
+        const cgs = (prev.gru==null)?'neutral':(d.gru>prev.gru?'up':(d.gru<prev.gru?'down':'neutral'));
+        ls.className = `chip ${cls}`;
+        gs.className = `chip ${cgs}`;
+        ls.textContent = lstmVal; 
+        gs.textContent = gruVal;
+
+        const hist = history.get(symbol);
+        hist.push({ 
+          t: t, 
+          open: Number(d.open||0), 
+          high: Number(d.high||0), 
+          low: Number(d.low||0), 
+          close: Number(d.close||0), 
+          volume: Number(d.volume||0),
+          lstm: Number(d.lstm||0), 
+          gru: Number(d.gru||0) 
+        });
+        while (hist.length > maxPoints) hist.shift();
+        
+        chart.data.labels = hist.map(p => p.t.toLocaleTimeString());
+        chart.data.datasets[0].data = hist.map(p => p.open);
+        chart.data.datasets[1].data = hist.map(p => p.high);
+        chart.data.datasets[2].data = hist.map(p => p.low);
+        chart.data.datasets[3].data = hist.map(p => p.close);
+        chart.update('none');
+      });
+    </script>
+  </body>
+</html>
+
+

@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:5
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: nifty15
+
+  data_pipeline:
+    build:
+      context: ./data_pipeline
+      dockerfile: Dockerfile
+    container_name: data_pipeline
+    environment:
+      - ALPHA_VANTAGE_KEY=${ALPHA_VANTAGE_KEY}
+      - MONGO_URL=mongodb://mongo:27017
+    depends_on:
+      - mongo
+
+  lstm_model:
+    build:
+      context: ./models/lstm_model
+      dockerfile: Dockerfile
+    container_name: lstm_model
+    ports:
+      - "8101:8000"
+    depends_on:
+      - mongo
+
+  gru_model:
+    build:
+      context: ./models/gru_model
+      dockerfile: Dockerfile
+    container_name: gru_model
+    ports:
+      - "8102:8000"
+    depends_on:
+      - mongo
+
+  lstm_qlstm_model:
+    build:
+      context: ./models/lstm_qlstm_model
+      dockerfile: Dockerfile
+    container_name: lstm_qlstm_model
+    ports:
+      - "8103:8000"
+    depends_on:
+      - mongo
+
+  gru_qgru_model:
+    build:
+      context: ./models/gru_qgru_model
+      dockerfile: Dockerfile
+    container_name: gru_qgru_model
+    ports:
+      - "8104:8000"
+    depends_on:
+      - mongo
+
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: dashboard_server
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - SYMBOLS=RELIANCE.NS,TCS.NS,HDFCBANK.NS,ICICIBANK.NS,INFY.NS,KOTAKBANK.NS,LT.NS,SBIN.NS,AXISBANK.NS,HINDUNILVR.NS,HCLTECH.NS,BAJFINANCE.NS,ITC.NS,BHARTIARTL.NS,MARUTI.NS
+    depends_on:
+      - mongo
+      - lstm_model
+      - gru_model
+      - lstm_qlstm_model
+      - gru_qgru_model
+
+  mean_server:
+    build:
+      context: ./mean_server
+      dockerfile: Dockerfile
+    container_name: mean_server
+    environment:
+      - PORT=8080
+      - MONGO_URL=mongodb://mongo:27017
+      - DB_NAME=nifty15
+      - COLLECTION=ticks
+      - SYMBOLS=RELIANCE.NS,TCS.NS,HDFCBANK.NS,ICICIBANK.NS,INFY.NS,KOTAKBANK.NS,LT.NS,SBIN.NS,AXISBANK.NS,HINDUNILVR.NS,HCLTECH.NS,BAJFINANCE.NS,ITC.NS,BHARTIARTL.NS,MARUTI.NS
+      - LSTM_URL=http://host.docker.internal:8101/predict
+      - GRU_URL=http://host.docker.internal:8102/predict
+      - POLL_MS=5000
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongo
+      - lstm_model
+      - gru_model

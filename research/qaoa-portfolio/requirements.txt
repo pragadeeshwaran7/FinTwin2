@@ -1,0 +1,13 @@
+yfinance
+pandas
+numpy
+scikit-learn
+matplotlib
+torch
+tqdm
+pennylane>=0.32
+streamlit
+jax<=0.4.28
+jaxlib<=0.4.28
+
+

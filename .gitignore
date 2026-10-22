@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+backend/data/
+ml/models/
+__pycache__/
+*.pyc
+venv/
+.venv/
+.DS_Store
+ml/data/market/
+backend/data/.master.key

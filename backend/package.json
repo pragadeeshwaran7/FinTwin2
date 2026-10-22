@@ -1,0 +1,22 @@
+{
+  "name": "fintwin-backend",
+  "version": "2.0.0",
+  "description": "FinTwin API: personal finance analytics, live NSE markets, ML bridge and AI assistant",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js --reset",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0"
+  }
+}
