@@ -131,7 +131,7 @@ export default function Savings() {
               <EmptyState
                 icon={PiggyBank}
                 title="See your savings potential"
-                description="A RandomForest model trained on 20,000 Indian household budgets estimates how much you could realistically save in each category. You are also compared with households of similar income, city tier and occupation."
+                description="Your budget is compared with 20,000 Indian households of similar income, city tier and occupation to estimate how much you could realistically save in each category."
                 action={<Button icon={Calculator} onClick={run} loading={busy}>Analyse my budget</Button>}
               />
             </Card>
@@ -190,7 +190,7 @@ export default function Savings() {
 
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Peer group: {result.peer_group.same_occupation ? 'same occupation, ' : ''}city tier, income ±{Math.round((result.peer_group.income_band || 0.6) * 100)}%</span>
-                <span className="flex items-center gap-1"><Info className="h-3.5 w-3.5" /> {result.model.name}, holdout R² {result.model.r2_holdout.toFixed(2)}, {result.model.training_rows.toLocaleString('en-IN')} training budgets</span>
+                <span className="flex items-center gap-1"><Info className="h-3.5 w-3.5" /> {result.model.name}, {(result.model.households || 0).toLocaleString('en-IN')} household budgets</span>
               </div>
             </>
           )}
