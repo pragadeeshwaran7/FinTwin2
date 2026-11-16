@@ -45,11 +45,6 @@ FinTwin is a personal-finance app that learns from your transactions, statements
 
 Re-run every evaluation with the scripts in [`ml/experiments/`](ml/experiments/).
 
-## Documentation
-
-- [Technical guide](https://claude.ai/artifact/RzEVGJGPGnoCXjbKRY4DrW): what works, how to run each model, and what is hardcoded or simulated
-- [What we need from you](https://claude.ai/artifact/2Vfx8ZWm8hp82N8wEhavqr): keys, Account Aggregator/FIU routes, bank and demat permissions, SEBI, DPDP and the launch checklist
-
 ## Architecture
 
 ```
