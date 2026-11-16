@@ -29,6 +29,11 @@ export const config = {
   geminiUrl:
     process.env.GEMINI_URL ||
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+  // OpenRouter (OpenAI-compatible). Used when OPENROUTER_API_KEY is set or GEMINI_API_KEY is an sk-or- key.
+  openrouterApiKey:
+    process.env.OPENROUTER_API_KEY ||
+    ((process.env.GEMINI_API_KEY || '').startsWith('sk-or-') ? process.env.GEMINI_API_KEY : ''),
+  openrouterModel: process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   kite: { apiKey: process.env.KITE_API_KEY || '', apiSecret: process.env.KITE_API_SECRET || '' },
   demoEmail: 'demo@fintwin.app',

@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(rateLimit({ windowMs: 60e3, max: 20, key: (req) => `chat:${req.user.id}`, message: 'You are sending messages too quickly. Wait a moment.' }));
 
-router.get('/status', (_req, res) => res.json({ success: true, llm: config.geminiApiKey ? 'gemini' : 'rules' }));
+router.get('/status', (_req, res) => res.json({ success: true, llm: config.geminiApiKey || config.openrouterApiKey ? 'gemini' : 'rules' }));
 
 router.post('/', async (req, res, next) => {
   const { message = '', history = [], context = {} } = req.body || {};

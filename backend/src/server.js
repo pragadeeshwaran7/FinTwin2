@@ -55,7 +55,7 @@ if (process.env.NODE_ENV !== 'test') {
   createApp().listen(config.port, () => {
     console.log(`FinTwin API running on http://localhost:${config.port}`);
     console.log(`Demo login: ${config.demoEmail} / ${config.demoPassword}`);
-    console.log(`AI assistant: ${config.geminiApiKey ? 'Gemini' : 'rule-based (set GEMINI_API_KEY for LLM answers)'}`);
+    console.log(`AI assistant: ${config.openrouterApiKey ? `OpenRouter (${config.openrouterModel})` : config.geminiApiKey ? 'Gemini' : 'rule-based (set GEMINI_API_KEY for LLM answers)'}`);
     console.log(`Google sign-in: ${config.googleClientId ? 'enabled' : 'disabled (set GOOGLE_CLIENT_ID)'}`);
     if (!config.dataKey) console.warn('DATA_ENCRYPTION_KEY not set: using an auto-generated key in data/.master.key (set it explicitly in production).');
     ensureRiskModel().catch(() => {});

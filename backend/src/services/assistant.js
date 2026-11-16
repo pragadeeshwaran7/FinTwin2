@@ -106,7 +106,27 @@ Rules:
 - For "what should I buy" questions: present the screen's candidates as ideas to research, explain the factor reasons and turbulence risk, mention the backtest caveat, and state clearly that this is not personalised investment advice (in India, personalised buy/sell advice requires SEBI registration).
 - For market questions: price and daily move, the most relevant headline, then model signals with their limits.`;
 
+async function callOpenRouter(message, history, contextText) {
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.slice(-8).map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content).slice(0, 4000) })),
+    { role: 'user', content: `CONTEXT:\n${contextText}\n\nQUESTION: ${message}` },
+  ];
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.openrouterApiKey}`, 'X-Title': 'FinTwin' },
+    body: JSON.stringify({ model: config.openrouterModel, messages, temperature: 0.3, top_p: 0.8, max_tokens: 1200 }),
+    signal: AbortSignal.timeout(40e3),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error?.message || `OpenRouter HTTP ${res.status}`);
+  const text = body?.choices?.[0]?.message?.content || '';
+  if (!text.trim()) throw new Error('Empty response from OpenRouter');
+  return text.trim();
+}
+
 async function callGemini(message, history, contextText) {
+  if (config.openrouterApiKey) return callOpenRouter(message, history, contextText);
   if (!config.geminiApiKey) throw new Error('GEMINI_API_KEY not configured');
   const contents = [
     ...history.slice(-8).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.content).slice(0, 4000) }] })),
