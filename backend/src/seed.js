@@ -47,6 +47,7 @@ export function ensureDemoUser({ reset = false } = {}) {
 // Only scrypt hashes are stored here. Extra accounts: SEED_USERS="email:password,email2:password2".
 const PERMANENT_USERS = [
   { email: 'harsha@gmail.com', name: 'Harsha', passwordHash: '7c50685914b245325f59b3c065248f8f:1860f01fbe01a9c87ae081d56b252f31e3838c0cb49d8e48e2fc0820add5768c7922cd5552f4d334602fcecbb9579ce5dd9728607e953c5525033b0b30f3027f' },
+  { email: 'vedhanthdevadharshan@gmail.com', name: 'Vedhanth', passwordHash: '5665e3ed8a1955c6acac8bf1b93e8a23:b385b0f75045c56e355e1c45d73a03b56cee2cf89799e171d7bee3c083694118df0a797780c59f0d371de1a1d0e7e04036ce949570965eb88bc7137159d036d8' },
 ];
 
 export function ensurePermanentUsers() {
