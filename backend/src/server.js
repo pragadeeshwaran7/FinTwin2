@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import fs from 'fs';
 import path from 'path';
 import { config } from './config.js';
-import { ensureDemoUser } from './seed.js';
+import { ensureDemoUser, ensurePermanentUsers } from './seed.js';
 import { corsOptions, rateLimit, securityHeaders } from './security.js';
 import { ensureRiskModel } from './services/ml.js';
 import authRoutes from './routes/auth.js';
@@ -52,6 +52,7 @@ export function createApp() {
 
 if (process.env.NODE_ENV !== 'test') {
   ensureDemoUser();
+  ensurePermanentUsers();
   createApp().listen(config.port, () => {
     console.log(`FinTwin API running on http://localhost:${config.port}`);
     console.log(`Demo login: ${config.demoEmail} / ${config.demoPassword}`);

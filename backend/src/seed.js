@@ -43,6 +43,26 @@ export function ensureDemoUser({ reset = false } = {}) {
   return user;
 }
 
+// Permanent accounts, re-created on every start (the free host wipes stored data on restart).
+// Only scrypt hashes are stored here. Extra accounts: SEED_USERS="email:password,email2:password2".
+const PERMANENT_USERS = [
+  { email: 'harsha@gmail.com', name: 'Harsha', passwordHash: '7c50685914b245325f59b3c065248f8f:1860f01fbe01a9c87ae081d56b252f31e3838c0cb49d8e48e2fc0820add5768c7922cd5552f4d334602fcecbb9579ce5dd9728607e953c5525033b0b30f3027f' },
+];
+
+export function ensurePermanentUsers() {
+  const extra = (process.env.SEED_USERS || '').split(',').map((s) => s.trim()).filter(Boolean).map((pair) => {
+    const i = pair.indexOf(':');
+    return { email: pair.slice(0, i).trim().toLowerCase(), name: pair.slice(0, i).split('@')[0], passwordHash: hashPassword(pair.slice(i + 1)) };
+  }).filter((u) => u.email.includes('@'));
+  let changed = false;
+  for (const u of [...PERMANENT_USERS, ...extra]) {
+    if (db.findUserByEmail(u.email)) continue;
+    db.createUser({ id: newId(), name: u.name, email: u.email, password: u.passwordHash, createdAt: new Date().toISOString(), profile: {} });
+    changed = true;
+  }
+  if (changed) save();
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const user = ensureDemoUser({ reset: process.argv.includes('--reset') });
   console.log(`Demo user ready: ${config.demoEmail} / ${config.demoPassword} (${db.transactions(user.id).length} transactions)`);
